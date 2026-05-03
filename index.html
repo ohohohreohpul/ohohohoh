@@ -27,6 +27,11 @@ body {
   overflow-x: hidden;
   cursor: none;
 }
+/* Hide custom cursor on touch devices */
+@media (hover: none) {
+  body { cursor: auto; }
+  #cursor, #cursor-ring { display: none; }
+}
 
 /* ── Custom Cursor ── */
 #cursor {
@@ -98,17 +103,19 @@ body {
 
 #enter-btn {
   font-family: var(--font-head);
-  font-size: clamp(9px, 1vw, 11px);
+  font-size: clamp(10px, 2.5vw, 12px);
   font-weight: 400;
-  letter-spacing: .55em;
+  letter-spacing: .5em;
   text-transform: uppercase;
-  color: rgba(0,229,255,0.82);
+  color: rgba(0,229,255,0.85);
   background: transparent;
-  border: 1px solid rgba(0,229,255,0.22);
-  padding: 18px 52px;
-  cursor: none;
-  text-shadow: 0 0 18px rgba(0,229,255,0.45);
-  box-shadow: 0 0 28px rgba(0,229,255,0.06);
+  border: 1px solid rgba(0,229,255,0.25);
+  padding: 20px 56px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  text-shadow: 0 0 20px rgba(0,229,255,0.5);
+  box-shadow: 0 0 32px rgba(0,229,255,0.07);
   transition: color .4s, border-color .4s, text-shadow .4s, box-shadow .4s;
   animation: btn-float 5s ease-in-out infinite;
 }
@@ -1080,12 +1087,16 @@ $('sound-btn').addEventListener('click', toggleSound);
 // Show minimal button after a beat
 setTimeout(() => { $('enter-btn-wrap').classList.add('visible'); }, 700);
 
-$('enter-btn').addEventListener('click', () => {
+function handleEnter(e) {
+  e.preventDefault();
   const wrap = $('enter-btn-wrap');
+  if (wrap.classList.contains('exit')) return;
   wrap.classList.add('exit');
   setTimeout(() => { wrap.style.display = 'none'; }, 1000);
   setTimeout(startHall, 400);
-});
+}
+$('enter-btn').addEventListener('click', handleEnter);
+$('enter-btn').addEventListener('touchend', handleEnter, { passive: false });
 
 function startHall() {
   const cv  = $('hall-canvas');
