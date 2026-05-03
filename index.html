@@ -81,70 +81,54 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px;
+  gap: 20px;
   opacity: 0;
-  transform: translateY(16px);
-  transition: opacity 2.8s ease, transform 2.8s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 2.4s ease;
   pointer-events: none;
 }
 #enter-btn-wrap.visible {
   opacity: 1;
-  transform: translateY(0);
   pointer-events: all;
+}
+#enter-btn-wrap.exit {
+  opacity: 0;
+  transition: opacity 1s ease;
+  pointer-events: none;
 }
 
 #enter-btn {
   font-family: var(--font-head);
-  font-size: clamp(11px, 1.2vw, 13px);
-  font-weight: 700;
-  letter-spacing: .5em;
+  font-size: clamp(9px, 1vw, 11px);
+  font-weight: 400;
+  letter-spacing: .55em;
   text-transform: uppercase;
-  color: #000;
-  background: var(--cyan);
-  border: none;
-  padding: 22px 72px;
+  color: rgba(0,229,255,0.82);
+  background: transparent;
+  border: 1px solid rgba(0,229,255,0.22);
+  padding: 18px 52px;
   cursor: none;
-  position: relative;
-  overflow: hidden;
-  clip-path: polygon(14px 0%, 100% 0%, calc(100% - 14px) 100%, 0% 100%);
-  box-shadow:
-    0 0 32px rgba(0,229,255,0.5),
-    0 0 80px rgba(0,229,255,0.2),
-    0 0 160px rgba(0,229,255,0.08);
-  transition: box-shadow .5s, background .5s, color .5s;
-  animation: btn-breathe 4s ease-in-out infinite;
-}
-#enter-btn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.28) 50%, transparent 65%);
-  transform: translateX(-100%);
-  animation: btn-sheen 5s ease-in-out infinite;
-}
-@keyframes btn-sheen {
-  0%,50% { transform: translateX(-100%); }
-  70%,100%{ transform: translateX(220%); }
-}
-@keyframes btn-breathe {
-  0%,100%{ box-shadow: 0 0 32px rgba(0,229,255,.5), 0 0 80px rgba(0,229,255,.2), 0 0 160px rgba(0,229,255,.08); }
-  50%    { box-shadow: 0 0 48px rgba(0,229,255,.75), 0 0 110px rgba(0,229,255,.3), 0 0 220px rgba(0,229,255,.12); }
+  text-shadow: 0 0 18px rgba(0,229,255,0.45);
+  box-shadow: 0 0 28px rgba(0,229,255,0.06);
+  transition: color .4s, border-color .4s, text-shadow .4s, box-shadow .4s;
+  animation: btn-float 5s ease-in-out infinite;
 }
 #enter-btn:hover {
-  background: #fff;
-  box-shadow: 0 0 60px rgba(0,229,255,.9), 0 0 140px rgba(0,229,255,.45), 0 0 260px rgba(0,229,255,.2);
+  color: rgba(0,229,255,1);
+  border-color: rgba(0,229,255,0.55);
+  text-shadow: 0 0 28px rgba(0,229,255,0.8);
+  box-shadow: 0 0 48px rgba(0,229,255,0.12);
+}
+@keyframes btn-float {
+  0%,100% { opacity: .75; }
+  50%      { opacity: 1; }
 }
 
 .enter-sub {
   font-family: var(--font-mono);
   font-size: 9px;
-  letter-spacing: .35em;
-  color: rgba(0,229,255,0.35);
+  letter-spacing: .3em;
+  color: rgba(0,229,255,0.2);
   text-transform: uppercase;
-  animation: blink-dim 3.5s ease-in-out infinite;
-}
-@keyframes blink-dim {
-  0%,100% { opacity: .3; } 50% { opacity: .7; }
 }
 
 #boot-progress-wrap {
@@ -1091,10 +1075,19 @@ $('sound-btn').addEventListener('click', toggleSound);
 //  PHASE SEQUENCER
 // ═══════════════════════════════════════════════════════════
 
-// ── Phase 0: Cinematic Hall — lights ignite inner→outer ──
-let zoomStarted = false;
+// ── Phase 0: Button on black → click → hall ignites → auto-zoom ──
 
-(function initHall() {
+// Show minimal button after a beat
+setTimeout(() => { $('enter-btn-wrap').classList.add('visible'); }, 700);
+
+$('enter-btn').addEventListener('click', () => {
+  const wrap = $('enter-btn-wrap');
+  wrap.classList.add('exit');
+  setTimeout(() => { wrap.style.display = 'none'; }, 1000);
+  setTimeout(startHall, 400);
+});
+
+function startHall() {
   const cv  = $('hall-canvas');
   const ctx = cv.getContext('2d');
 
@@ -1104,47 +1097,38 @@ let zoomStarted = false;
 
   const W = () => cv.width, H = () => cv.height;
 
-  // Corridor geometry — fewer rings, cleaner presence
-  const NUM_RINGS      = 18;
-  const OUTER_W        = 0.88;
-  const OUTER_H        = 0.84;
-  // Timing
-  const SILENCE_MS     = 1800;   // pure black before first light
-  const TOTAL_SPREAD_MS= 4200;   // how long ignition wave takes
-  const RING_FADE_MS   = 900;    // how long each ring takes to reach full brightness
-  const ZOOM_DURATION  = 2200;   // zoom push duration
+  const NUM_RINGS     = 10;
+  const OUTER_W       = 0.88;
+  const OUTER_H       = 0.84;
+  const RING_STEP_MS  = 380;
+  const RING_FADE_MS  = 600;
+  const ZOOM_DELAY_MS = 700;
+  const ZOOM_DURATION = 2000;
+  const totalIgnitionMs = (NUM_RINGS - 1) * RING_STEP_MS + RING_FADE_MS;
 
   function getRing(i) {
-    // perspective pow makes inner rings much smaller, feels like real depth
-    const t  = (i + 1) / NUM_RINGS;
-    const tE = Math.pow(t, 0.48);
+    const tE = Math.pow((i + 1) / NUM_RINGS, 0.5);
     return {
       hw: (W() * OUTER_W * 0.5) * tE,
       hh: (H() * OUTER_H * 0.5) * tE,
     };
   }
 
-  const ringLit = new Float32Array(NUM_RINGS);
-
-  let hallStartTime = null;
-  let hallDone      = false;
-  let zoomT         = 0;
-  let zoomStartTime = 0;
-  let buttonShown   = false;
-
-  function ringDelay(i) {
-    return SILENCE_MS + (i / (NUM_RINGS - 1)) * TOTAL_SPREAD_MS;
-  }
-
-  function zoomedRing(i, zoom) {
+  function scaledRing(i, zoom) {
     const base = getRing(i);
     const s = 1 + zoom * 1.8;
     return { hw: base.hw * s, hh: base.hh * s };
   }
 
-  function drawHall(timestamp) {
-    if (!hallStartTime) hallStartTime = timestamp;
-    const elapsed = timestamp - hallStartTime;
+  const ringLit = new Float32Array(NUM_RINGS);
+  let startTime = null;
+  let zoomStart = null;
+  let zoomT     = 0;
+  let done      = false;
+
+  function draw(ts) {
+    if (!startTime) startTime = ts;
+    const elapsed = ts - startTime;
 
     ctx.clearRect(0, 0, W(), H());
     ctx.fillStyle = '#000';
@@ -1152,162 +1136,84 @@ let zoomStarted = false;
 
     const vpx = W() / 2, vpy = H() / 2;
 
-    // Update ring brightness
     for (let i = 0; i < NUM_RINGS; i++) {
-      const d = ringDelay(i);
-      ringLit[i] = easeOutQuart(Math.max(0, Math.min(1, (elapsed - d) / RING_FADE_MS)));
+      const t = Math.max(0, Math.min(1, (elapsed - i * RING_STEP_MS) / RING_FADE_MS));
+      ringLit[i] = easeOutQuart(t);
     }
 
-    // Zoom trigger
-    if (!zoomStarted && window.__hallZoomTrigger) {
-      zoomStarted   = true;
-      zoomStartTime = elapsed;
-      window.__hallZoomTrigger = false;
+    if (!zoomStart && elapsed >= totalIgnitionMs + ZOOM_DELAY_MS) {
+      zoomStart = ts;
     }
-    if (zoomStarted) {
-      zoomT = Math.min(1, (elapsed - zoomStartTime) / ZOOM_DURATION);
-      if (zoomT >= 1 && !hallDone) {
-        hallDone = true;
-        setTimeout(onHallComplete, 80);
+    if (zoomStart) {
+      zoomT = Math.min(1, (ts - zoomStart) / ZOOM_DURATION);
+      if (zoomT >= 1 && !done) {
+        done = true;
+        setTimeout(onHallComplete, 60);
       }
     }
-    const zoom = zoomStarted ? easeInOutQuart(zoomT) : 0;
+    const zoom = zoomStart ? easeInOutQuart(zoomT) : 0;
 
-    // ── Corner rails (VP → screen corners) ──
-    // Draw only after outermost ring starts appearing
     const outerLit = ringLit[NUM_RINGS - 1];
     if (outerLit > 0) {
-      const outer = zoomedRing(NUM_RINGS - 1, zoom);
+      const o = scaledRing(NUM_RINGS - 1, zoom);
       ctx.save();
       ctx.shadowBlur = 0;
-      [
-        [-outer.hw, -outer.hh],
-        [ outer.hw, -outer.hh],
-        [ outer.hw,  outer.hh],
-        [-outer.hw,  outer.hh],
-      ].forEach(([dx, dy]) => {
+      [[-o.hw,-o.hh],[o.hw,-o.hh],[o.hw,o.hh],[-o.hw,o.hh]].forEach(([dx,dy]) => {
         ctx.beginPath();
         ctx.moveTo(vpx, vpy);
         ctx.lineTo(vpx + dx, vpy + dy);
-        ctx.strokeStyle = `rgba(0,229,255,${outerLit * 0.09})`;
-        ctx.lineWidth   = 0.6;
+        ctx.strokeStyle = \`rgba(0,229,255,\${outerLit * 0.07})\`;
+        ctx.lineWidth = 0.5;
         ctx.stroke();
       });
       ctx.restore();
     }
 
-    // ── Rings ──
-    // Disable shadow for lines — use glow only on accent rings
     for (let i = 0; i < NUM_RINGS; i++) {
       const lit = ringLit[i];
       if (lit < 0.002) continue;
-
-      const { hw, hh } = zoomedRing(i, zoom);
-
-      // Outer rings are brightest (they're furthest away but carry the drama)
-      const isAccent  = (i % 3 === 0);
-      const brightness = 0.45 + 0.55 * (i / (NUM_RINGS - 1)); // inner dimmer, outer brighter
-      const alpha     = lit * brightness * (isAccent ? 1.0 : 0.7);
-      const lw        = isAccent ? 1.2 : 0.75;
-
+      const { hw, hh } = scaledRing(i, zoom);
+      const brightness = 0.5 + 0.5 * (i / (NUM_RINGS - 1));
       ctx.save();
-      if (isAccent && lit > 0.3) {
-        ctx.shadowColor = `rgba(0,220,255,${lit * 0.6})`;
-        ctx.shadowBlur  = 8;
-      }
-      ctx.strokeStyle = `rgba(0,229,255,${alpha})`;
-      ctx.lineWidth   = lw;
+      ctx.shadowColor = \`rgba(0,220,255,\${lit * brightness * 0.5})\`;
+      ctx.shadowBlur  = 10;
+      ctx.strokeStyle = \`rgba(0,229,255,\${lit * brightness * 0.9})\`;
+      ctx.lineWidth   = 1;
       ctx.beginPath();
       ctx.rect(vpx - hw, vpy - hh, hw * 2, hh * 2);
       ctx.stroke();
       ctx.restore();
     }
 
-    // ── Vanishing-point core glow ──
-    // Builds slowly, no rapid flicker
-    const coreProgress = Math.max(0, Math.min(1, (elapsed - SILENCE_MS) / 3500));
-    // Very slow, barely perceptible breath — 0.0006 rad/ms
-    const breath   = 0.88 + 0.12 * Math.sin(elapsed * 0.0006);
-    const coreAlpha = coreProgress * breath;
-    const coreR     = zoomStarted
-      ? (W() * 0.22) * (1 + easeInOutQuart(zoomT) * 2.8)
-      : W() * 0.08;
+    const glowProgress = Math.max(0, Math.min(1, elapsed / totalIgnitionMs));
+    const breath = 0.9 + 0.1 * Math.sin(elapsed * 0.0007);
+    const coreAlpha = glowProgress * breath * 0.8;
+    const coreR = zoomStart
+      ? (W() * 0.1) * (1 + easeInOutQuart(zoomT) * 3.2)
+      : W() * 0.06 + W() * 0.04 * glowProgress;
 
     const cg = ctx.createRadialGradient(vpx, vpy, 0, vpx, vpy, coreR);
-    cg.addColorStop(0,    `rgba(0,229,255,${coreAlpha * 0.85})`);
-    cg.addColorStop(0.12, `rgba(0,200,255,${coreAlpha * 0.3})`);
-    cg.addColorStop(0.45, `rgba(0,60,100,${coreAlpha * 0.07})`);
+    cg.addColorStop(0,    \`rgba(0,229,255,\${coreAlpha})\`);
+    cg.addColorStop(0.15, \`rgba(0,200,255,\${coreAlpha * 0.35})\`);
     cg.addColorStop(1,    'rgba(0,0,0,0)');
     ctx.fillStyle = cg;
     ctx.beginPath();
     ctx.arc(vpx, vpy, coreR, 0, Math.PI * 2);
     ctx.fill();
 
-    // Show button once second-to-last ring is clearly visible
-    if (!buttonShown && ringLit[NUM_RINGS - 2] > 0.55) {
-      buttonShown = true;
-      $('enter-btn-wrap').classList.add('visible');
-    }
-
-    if (!hallDone) requestAnimationFrame(drawHall);
+    if (!done) requestAnimationFrame(draw);
   }
 
-  requestAnimationFrame(drawHall);
-})();
+  requestAnimationFrame(draw);
+}
 
-function easeOutCubic(t)     { return 1 - Math.pow(1 - t, 3); }
-function easeOutQuart(t)     { return 1 - Math.pow(1 - t, 4); }
-function easeInOutCubic(t)   { return t < 0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2; }
-function easeInOutQuart(t)   { return t < 0.5 ? 8*t*t*t*t : 1-Math.pow(-2*t+2,4)/2; }
+function easeOutCubic(t)   { return 1 - Math.pow(1 - t, 3); }
+function easeOutQuart(t)   { return 1 - Math.pow(1 - t, 4); }
+function easeInOutQuart(t) { return t < 0.5 ? 8*t*t*t*t : 1-Math.pow(-2*t+2,4)/2; }
 
 function onHallComplete() {
-  // Elegant fade — no cheap flash
   setTimeout(showBootProgress, 200);
 }
-
-function showBootProgress() {
-  const wrap = $('enter-btn-wrap');
-  wrap.style.transition = 'opacity .4s';
-  wrap.style.opacity    = '0';
-  setTimeout(() => { wrap.style.display = 'none'; }, 400);
-
-  const progressWrap = $('boot-progress-wrap');
-  const fill         = $('boot-progress-fill');
-  const statusEl     = $('boot-status');
-  const pctEl        = $('boot-pct');
-  progressWrap.classList.add('visible');
-
-  const steps = [
-    { pct:12,  label:'SYSTEM HANDSHAKE',    delay:180 },
-    { pct:28,  label:'LOADING CORE KERNEL', delay:320 },
-    { pct:45,  label:'INITIALIZING GRID',   delay:280 },
-    { pct:61,  label:'NEURAL SYNC',         delay:340 },
-    { pct:78,  label:'RENDERING NODES',     delay:260 },
-    { pct:91,  label:'COMPILING IDENTITY',  delay:320 },
-    { pct:100, label:'IDENTITY CONFIRMED',  delay:420 },
-  ];
-
-  let idx = 0;
-  function runStep() {
-    if (idx >= steps.length) { setTimeout(startConsole, 400); return; }
-    const s = steps[idx++];
-    fill.style.width     = s.pct + '%';
-    statusEl.textContent = s.label;
-    pctEl.textContent    = s.pct + '%';
-    setTimeout(runStep, s.delay);
-  }
-  setTimeout(runStep, 100);
-}
-
-$('enter-btn').addEventListener('click', () => {
-  if (zoomStarted) return;
-  const wrap = $('enter-btn-wrap');
-  wrap.style.transition = 'opacity .3s';
-  wrap.style.opacity = '0';
-  setTimeout(() => { wrap.style.display = 'none'; }, 300);
-  zoomStarted = true;
-  window.__hallZoomTrigger = true;
-});
 
 // ── Phase 1: Console Typing ───────────────────────────────
 const CONSOLE_SEQUENCE = [
