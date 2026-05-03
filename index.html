@@ -1082,16 +1082,21 @@ $('sound-btn').addEventListener('click', toggleSound);
 //  PHASE SEQUENCER
 // ═══════════════════════════════════════════════════════════
 
-// ── Phase 0: Button on black → click → hall ignites → auto-zoom ──
+// ── Phase 0: Button on black → tap → hall ignites → auto-zoom ──
 
-
-$('enter-btn').addEventListener('click', () => {
+let _entered = false;
+function onEnter(e) {
+  if (_entered) return;
+  _entered = true;
+  e.preventDefault();
   const wrap = $('enter-btn-wrap');
-  if (wrap.classList.contains('exit')) return;
   wrap.classList.add('exit');
   setTimeout(() => { wrap.style.display = 'none'; }, 1000);
-  setTimeout(startHall, 400);
-});
+  startHall(); // start immediately, no delay
+}
+// touchstart fires the instant finger touches — most reliable on iOS
+$('enter-btn').addEventListener('touchstart', onEnter, { passive: false });
+$('enter-btn').addEventListener('click', onEnter);
 
 function startHall() {
   const cv  = $('hall-canvas');
@@ -1106,9 +1111,9 @@ function startHall() {
   const NUM_RINGS     = 10;
   const OUTER_W       = 0.88;
   const OUTER_H       = 0.84;
-  const RING_STEP_MS  = 380;
-  const RING_FADE_MS  = 600;
-  const ZOOM_DELAY_MS = 700;
+  const RING_STEP_MS  = 320;   // faster, more immediate feedback
+  const RING_FADE_MS  = 400;
+  const ZOOM_DELAY_MS = 600;
   const ZOOM_DURATION = 2000;
   const totalIgnitionMs = (NUM_RINGS - 1) * RING_STEP_MS + RING_FADE_MS;
 
@@ -1179,17 +1184,16 @@ function startHall() {
       const lit = ringLit[i];
       if (lit < 0.002) continue;
       const { hw, hh } = scaledRing(i, zoom);
-      const brightness = 0.5 + 0.5 * (i / (NUM_RINGS - 1));
-      ctx.save();
-      ctx.shadowColor = \`rgba(0,220,255,\${lit * brightness * 0.5})\`;
-      ctx.shadowBlur  = 10;
-      ctx.strokeStyle = \`rgba(0,229,255,\${lit * brightness * 0.9})\`;
-      ctx.lineWidth   = 1;
+      const brightness = 0.6 + 0.4 * (i / (NUM_RINGS - 1));
+      ctx.strokeStyle = \`rgba(0,229,255,\${lit * brightness})\`;
+      ctx.lineWidth   = 1.5;
+      ctx.shadowColor = '#00e5ff';
+      ctx.shadowBlur  = 6;
       ctx.beginPath();
       ctx.rect(vpx - hw, vpy - hh, hw * 2, hh * 2);
       ctx.stroke();
-      ctx.restore();
     }
+    ctx.shadowBlur = 0;
 
     const glowProgress = Math.max(0, Math.min(1, elapsed / totalIgnitionMs));
     const breath = 0.9 + 0.1 * Math.sin(elapsed * 0.0007);
