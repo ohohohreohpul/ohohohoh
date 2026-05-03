@@ -64,7 +64,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  transition: opacity 1.4s ease;
+  transition: opacity 2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 #boot-screen.fade-out { opacity: 0; pointer-events: none; }
 
@@ -81,70 +81,70 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
+  gap: 24px;
   opacity: 0;
-  transform: scale(0.92);
-  transition: opacity 1.2s ease, transform 1.2s ease;
+  transform: translateY(16px);
+  transition: opacity 2.8s ease, transform 2.8s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: none;
 }
 #enter-btn-wrap.visible {
   opacity: 1;
-  transform: scale(1);
+  transform: translateY(0);
   pointer-events: all;
 }
 
 #enter-btn {
   font-family: var(--font-head);
-  font-size: clamp(12px, 1.4vw, 15px);
+  font-size: clamp(11px, 1.2vw, 13px);
   font-weight: 700;
-  letter-spacing: .4em;
+  letter-spacing: .5em;
   text-transform: uppercase;
   color: #000;
   background: var(--cyan);
   border: none;
-  padding: 20px 60px;
+  padding: 22px 72px;
   cursor: none;
   position: relative;
   overflow: hidden;
-  clip-path: polygon(12px 0%, 100% 0%, calc(100% - 12px) 100%, 0% 100%);
+  clip-path: polygon(14px 0%, 100% 0%, calc(100% - 14px) 100%, 0% 100%);
   box-shadow:
-    0 0 40px rgba(0,229,255,0.7),
-    0 0 100px rgba(0,229,255,0.3),
-    0 0 200px rgba(0,229,255,0.1);
-  transition: box-shadow .3s, background .3s, color .3s;
-  animation: btn-breathe 2.4s ease-in-out infinite;
+    0 0 32px rgba(0,229,255,0.5),
+    0 0 80px rgba(0,229,255,0.2),
+    0 0 160px rgba(0,229,255,0.08);
+  transition: box-shadow .5s, background .5s, color .5s;
+  animation: btn-breathe 4s ease-in-out infinite;
 }
 #enter-btn::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.35) 50%, transparent 70%);
+  background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.28) 50%, transparent 65%);
   transform: translateX(-100%);
-  animation: btn-sheen 3.2s ease-in-out infinite;
+  animation: btn-sheen 5s ease-in-out infinite;
 }
 @keyframes btn-sheen {
-  0%,40% { transform: translateX(-100%); }
-  60%,100%{ transform: translateX(200%); }
+  0%,50% { transform: translateX(-100%); }
+  70%,100%{ transform: translateX(220%); }
 }
 @keyframes btn-breathe {
-  0%,100%{ box-shadow: 0 0 40px rgba(0,229,255,.7), 0 0 100px rgba(0,229,255,.3), 0 0 200px rgba(0,229,255,.1); }
-  50%    { box-shadow: 0 0 60px rgba(0,229,255,.95),0 0 140px rgba(0,229,255,.5), 0 0 280px rgba(0,229,255,.2); }
+  0%,100%{ box-shadow: 0 0 32px rgba(0,229,255,.5), 0 0 80px rgba(0,229,255,.2), 0 0 160px rgba(0,229,255,.08); }
+  50%    { box-shadow: 0 0 48px rgba(0,229,255,.75), 0 0 110px rgba(0,229,255,.3), 0 0 220px rgba(0,229,255,.12); }
 }
 #enter-btn:hover {
   background: #fff;
-  box-shadow: 0 0 80px rgba(0,229,255,1), 0 0 160px rgba(0,229,255,0.6), 0 0 320px rgba(0,229,255,0.3);
+  box-shadow: 0 0 60px rgba(0,229,255,.9), 0 0 140px rgba(0,229,255,.45), 0 0 260px rgba(0,229,255,.2);
 }
 
 .enter-sub {
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: .3em;
-  color: rgba(0,229,255,0.5);
+  font-size: 9px;
+  letter-spacing: .35em;
+  color: rgba(0,229,255,0.35);
   text-transform: uppercase;
-  animation: blink-dim 2s ease-in-out infinite;
+  animation: blink-dim 3.5s ease-in-out infinite;
 }
 @keyframes blink-dim {
-  0%,100% { opacity: .4; } 50% { opacity: .9; }
+  0%,100% { opacity: .3; } 50% { opacity: .7; }
 }
 
 #boot-progress-wrap {
@@ -1098,48 +1098,47 @@ let zoomStarted = false;
   const cv  = $('hall-canvas');
   const ctx = cv.getContext('2d');
 
-  function resize() {
-    cv.width  = window.innerWidth;
-    cv.height = window.innerHeight;
-  }
+  function resize() { cv.width = window.innerWidth; cv.height = window.innerHeight; }
   resize();
   window.addEventListener('resize', resize);
 
   const W = () => cv.width, H = () => cv.height;
-  const VPX = () => W() / 2;
-  const VPY = () => H() / 2;
 
-  const NUM_RINGS   = 28;
-  const OUTER_W     = 0.92;
-  const OUTER_H     = 0.88;
+  // Corridor geometry — fewer rings, cleaner presence
+  const NUM_RINGS      = 18;
+  const OUTER_W        = 0.88;
+  const OUTER_H        = 0.84;
+  // Timing
+  const SILENCE_MS     = 1800;   // pure black before first light
+  const TOTAL_SPREAD_MS= 4200;   // how long ignition wave takes
+  const RING_FADE_MS   = 900;    // how long each ring takes to reach full brightness
+  const ZOOM_DURATION  = 2200;   // zoom push duration
 
   function getRing(i) {
-    const t   = (i + 1) / NUM_RINGS;
-    const tE  = Math.pow(t, 0.55);
-    const hw  = (W() * OUTER_W * 0.5) * tE;
-    const hh  = (H() * OUTER_H * 0.5) * tE;
-    return { hw, hh };
+    // perspective pow makes inner rings much smaller, feels like real depth
+    const t  = (i + 1) / NUM_RINGS;
+    const tE = Math.pow(t, 0.48);
+    return {
+      hw: (W() * OUTER_W * 0.5) * tE,
+      hh: (H() * OUTER_H * 0.5) * tE,
+    };
   }
 
-  const ringLit   = new Array(NUM_RINGS).fill(0);
-  const WALL_DIVS = 4;
-  const wallLit   = Array.from({ length: NUM_RINGS }, () => new Array(WALL_DIVS).fill(0));
+  const ringLit = new Float32Array(NUM_RINGS);
 
-  let hallStartTime  = null;
-  let hallDone       = false;
-  let zoomT          = 0;
-  let zoomStartTime  = 0;
-  let buttonShown    = false;
-
-  const TOTAL_SPREAD_MS = 2600;
+  let hallStartTime = null;
+  let hallDone      = false;
+  let zoomT         = 0;
+  let zoomStartTime = 0;
+  let buttonShown   = false;
 
   function ringDelay(i) {
-    return (i / (NUM_RINGS - 1)) * TOTAL_SPREAD_MS;
+    return SILENCE_MS + (i / (NUM_RINGS - 1)) * TOTAL_SPREAD_MS;
   }
 
   function zoomedRing(i, zoom) {
     const base = getRing(i);
-    const s = 1 + zoom * 1.6;
+    const s = 1 + zoom * 1.8;
     return { hw: base.hw * s, hh: base.hh * s };
   }
 
@@ -1151,168 +1150,119 @@ let zoomStarted = false;
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, W(), H());
 
-    const vpx = VPX(), vpy = VPY();
+    const vpx = W() / 2, vpy = H() / 2;
 
+    // Update ring brightness
     for (let i = 0; i < NUM_RINGS; i++) {
-      const delay = ringDelay(i);
-      const t = Math.max(0, Math.min(1, (elapsed - delay) / 320));
-      ringLit[i] = easeOutCubic(t);
-
-      for (let d = 0; d < WALL_DIVS; d++) {
-        const divDelay = delay + 80 + d * 60;
-        const dt = Math.max(0, Math.min(1, (elapsed - divDelay) / 280));
-        wallLit[i][d] = easeOutCubic(dt);
-      }
+      const d = ringDelay(i);
+      ringLit[i] = easeOutQuart(Math.max(0, Math.min(1, (elapsed - d) / RING_FADE_MS)));
     }
 
+    // Zoom trigger
     if (!zoomStarted && window.__hallZoomTrigger) {
       zoomStarted   = true;
       zoomStartTime = elapsed;
       window.__hallZoomTrigger = false;
     }
-
     if (zoomStarted) {
-      const zoomElapsed = elapsed - zoomStartTime;
-      zoomT = Math.min(1, zoomElapsed / 900);
+      zoomT = Math.min(1, (elapsed - zoomStartTime) / ZOOM_DURATION);
       if (zoomT >= 1 && !hallDone) {
         hallDone = true;
-        setTimeout(onHallComplete, 100);
+        setTimeout(onHallComplete, 80);
       }
     }
+    const zoom = zoomStarted ? easeInOutQuart(zoomT) : 0;
 
-    const zoom = zoomStarted ? easeInOutCubic(zoomT) : 0;
-
-    if (ringLit[NUM_RINGS - 1] > 0.01) {
+    // ── Corner rails (VP → screen corners) ──
+    // Draw only after outermost ring starts appearing
+    const outerLit = ringLit[NUM_RINGS - 1];
+    if (outerLit > 0) {
       const outer = zoomedRing(NUM_RINGS - 1, zoom);
-      const corners = [
+      ctx.save();
+      ctx.shadowBlur = 0;
+      [
         [-outer.hw, -outer.hh],
         [ outer.hw, -outer.hh],
         [ outer.hw,  outer.hh],
         [-outer.hw,  outer.hh],
-      ];
-      corners.forEach(([dx, dy]) => {
-        const alpha = ringLit[NUM_RINGS - 1] * 0.18;
+      ].forEach(([dx, dy]) => {
         ctx.beginPath();
         ctx.moveTo(vpx, vpy);
         ctx.lineTo(vpx + dx, vpy + dy);
-        ctx.strokeStyle = `rgba(0,229,255,${alpha})`;
-        ctx.lineWidth = 0.5;
-        ctx.shadowBlur = 0;
+        ctx.strokeStyle = `rgba(0,229,255,${outerLit * 0.09})`;
+        ctx.lineWidth   = 0.6;
         ctx.stroke();
       });
-
-      const midEdges = [
-        [0, -outer.hh], [0, outer.hh],
-        [-outer.hw, 0], [outer.hw, 0],
-      ];
-      midEdges.forEach(([dx, dy]) => {
-        const alpha = ringLit[NUM_RINGS - 1] * 0.08;
-        ctx.beginPath();
-        ctx.moveTo(vpx, vpy);
-        ctx.lineTo(vpx + dx, vpy + dy);
-        ctx.strokeStyle = `rgba(0,229,255,${alpha})`;
-        ctx.lineWidth = 0.4;
-        ctx.stroke();
-      });
+      ctx.restore();
     }
 
+    // ── Rings ──
+    // Disable shadow for lines — use glow only on accent rings
     for (let i = 0; i < NUM_RINGS; i++) {
       const lit = ringLit[i];
-      if (lit < 0.005) continue;
+      if (lit < 0.002) continue;
 
       const { hw, hh } = zoomedRing(i, zoom);
-      const isAccent = (i % 4 === 0);
 
-      const depthFade = 0.3 + 0.7 * (i / (NUM_RINGS - 1));
-      const lineAlpha = isAccent ? 0.95 : 0.65;
-      const lineW     = isAccent ? 1.4 : 0.85;
+      // Outer rings are brightest (they're furthest away but carry the drama)
+      const isAccent  = (i % 3 === 0);
+      const brightness = 0.45 + 0.55 * (i / (NUM_RINGS - 1)); // inner dimmer, outer brighter
+      const alpha     = lit * brightness * (isAccent ? 1.0 : 0.7);
+      const lw        = isAccent ? 1.2 : 0.75;
 
-      ctx.shadowColor = 'rgba(0,229,255,0.7)';
-      ctx.shadowBlur  = isAccent ? 10 : 5;
-      ctx.strokeStyle = `rgba(0,229,255,${lineAlpha * lit})`;
-      ctx.lineWidth   = lineW;
-
-      if (lit > 0.02) {
-        ctx.beginPath();
-        ctx.rect(vpx - hw, vpy - hh, hw * 2, hh * 2);
-        ctx.stroke();
+      ctx.save();
+      if (isAccent && lit > 0.3) {
+        ctx.shadowColor = `rgba(0,220,255,${lit * 0.6})`;
+        ctx.shadowBlur  = 8;
       }
-
-      for (let d = 1; d < WALL_DIVS; d++) {
-        const wl = wallLit[i][d - 1];
-        if (wl < 0.02) continue;
-        const yOff = hh * (d / WALL_DIVS);
-
-        ctx.strokeStyle = `rgba(0,229,255,${0.3 * wl})`;
-        ctx.lineWidth   = 0.5;
-        ctx.shadowBlur  = 3;
-
-        ctx.beginPath();
-        ctx.moveTo(vpx - hw, vpy - yOff);
-        ctx.lineTo(vpx + hw, vpy - yOff);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(vpx - hw, vpy + yOff);
-        ctx.lineTo(vpx + hw, vpy + yOff);
-        ctx.stroke();
-      }
-
-      for (let d = 1; d < WALL_DIVS; d++) {
-        const wl = wallLit[i][d - 1];
-        if (wl < 0.02) continue;
-        const xOff = hw * (d / WALL_DIVS);
-
-        ctx.strokeStyle = `rgba(0,229,255,${0.25 * wl})`;
-        ctx.lineWidth   = 0.5;
-        ctx.shadowBlur  = 3;
-
-        ctx.beginPath();
-        ctx.moveTo(vpx - xOff, vpy - hh);
-        ctx.lineTo(vpx - xOff, vpy + hh);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(vpx + xOff, vpy - hh);
-        ctx.lineTo(vpx + xOff, vpy + hh);
-        ctx.stroke();
-      }
+      ctx.strokeStyle = `rgba(0,229,255,${alpha})`;
+      ctx.lineWidth   = lw;
+      ctx.beginPath();
+      ctx.rect(vpx - hw, vpy - hh, hw * 2, hh * 2);
+      ctx.stroke();
+      ctx.restore();
     }
 
-    const coreAlpha = Math.min(1, elapsed / 400) * (0.7 + 0.3 * Math.sin(elapsed * 0.004));
-    const coreR = zoomStarted ? 120 * (1 + zoomT * 3) : 80;
-    const coreGrad = ctx.createRadialGradient(vpx, vpy, 0, vpx, vpy, coreR);
-    coreGrad.addColorStop(0,    `rgba(0,229,255,${coreAlpha * 0.9})`);
-    coreGrad.addColorStop(0.15, `rgba(0,200,255,${coreAlpha * 0.4})`);
-    coreGrad.addColorStop(0.5,  `rgba(0,80,120,${coreAlpha * 0.12})`);
-    coreGrad.addColorStop(1,    'rgba(0,0,0,0)');
-    ctx.fillStyle = coreGrad;
+    // ── Vanishing-point core glow ──
+    // Builds slowly, no rapid flicker
+    const coreProgress = Math.max(0, Math.min(1, (elapsed - SILENCE_MS) / 3500));
+    // Very slow, barely perceptible breath — 0.0006 rad/ms
+    const breath   = 0.88 + 0.12 * Math.sin(elapsed * 0.0006);
+    const coreAlpha = coreProgress * breath;
+    const coreR     = zoomStarted
+      ? (W() * 0.22) * (1 + easeInOutQuart(zoomT) * 2.8)
+      : W() * 0.08;
+
+    const cg = ctx.createRadialGradient(vpx, vpy, 0, vpx, vpy, coreR);
+    cg.addColorStop(0,    `rgba(0,229,255,${coreAlpha * 0.85})`);
+    cg.addColorStop(0.12, `rgba(0,200,255,${coreAlpha * 0.3})`);
+    cg.addColorStop(0.45, `rgba(0,60,100,${coreAlpha * 0.07})`);
+    cg.addColorStop(1,    'rgba(0,0,0,0)');
+    ctx.fillStyle = cg;
     ctx.beginPath();
     ctx.arc(vpx, vpy, coreR, 0, Math.PI * 2);
     ctx.fill();
 
-    if (!buttonShown && ringLit[4] > 0.7) {
+    // Show button once second-to-last ring is clearly visible
+    if (!buttonShown && ringLit[NUM_RINGS - 2] > 0.55) {
       buttonShown = true;
       $('enter-btn-wrap').classList.add('visible');
     }
 
-    if (!hallDone) {
-      requestAnimationFrame(drawHall);
-    }
+    if (!hallDone) requestAnimationFrame(drawHall);
   }
 
   requestAnimationFrame(drawHall);
 })();
 
-function easeInOutCubic(t) { return t < 0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2; }
-function easeOutCubic(t)   { return 1 - Math.pow(1 - t, 3); }
+function easeOutCubic(t)     { return 1 - Math.pow(1 - t, 3); }
+function easeOutQuart(t)     { return 1 - Math.pow(1 - t, 4); }
+function easeInOutCubic(t)   { return t < 0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2; }
+function easeInOutQuart(t)   { return t < 0.5 ? 8*t*t*t*t : 1-Math.pow(-2*t+2,4)/2; }
 
 function onHallComplete() {
-  const bs = $('boot-screen');
-  bs.style.transition = 'background 0.15s';
-  bs.style.background = 'rgba(0,229,255,0.08)';
-  setTimeout(() => { bs.style.background = '#000'; }, 150);
-  setTimeout(showBootProgress, 300);
+  // Elegant fade — no cheap flash
+  setTimeout(showBootProgress, 200);
 }
 
 function showBootProgress() {
@@ -1328,13 +1278,13 @@ function showBootProgress() {
   progressWrap.classList.add('visible');
 
   const steps = [
-    { pct:12,  label:'SYSTEM HANDSHAKE',    delay:100 },
-    { pct:28,  label:'LOADING CORE KERNEL', delay:220 },
-    { pct:45,  label:'INITIALIZING GRID',   delay:200 },
-    { pct:61,  label:'NEURAL SYNC',         delay:240 },
-    { pct:78,  label:'RENDERING NODES',     delay:180 },
-    { pct:91,  label:'COMPILING IDENTITY',  delay:220 },
-    { pct:100, label:'IDENTITY CONFIRMED',  delay:280 },
+    { pct:12,  label:'SYSTEM HANDSHAKE',    delay:180 },
+    { pct:28,  label:'LOADING CORE KERNEL', delay:320 },
+    { pct:45,  label:'INITIALIZING GRID',   delay:280 },
+    { pct:61,  label:'NEURAL SYNC',         delay:340 },
+    { pct:78,  label:'RENDERING NODES',     delay:260 },
+    { pct:91,  label:'COMPILING IDENTITY',  delay:320 },
+    { pct:100, label:'IDENTITY CONFIRMED',  delay:420 },
   ];
 
   let idx = 0;
