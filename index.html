@@ -753,41 +753,58 @@ function drawShape(ctx, pts, baseR) {
   var cx2 = entW / 2, cy2 = entH / 2;
   var g = hoverGlow;
 
-  if (!isMobile) {
-    ctx.save();
-    ctx.lineWidth = 18 + g * 24;
-    ctx.strokeStyle = 'rgba(0,229,255,' + (0.05 + g * 0.18).toFixed(3) + ')';
-    ctx.shadowColor = '#00e5ff';
-    ctx.shadowBlur = 60 + g * 100;
-    drawMorphPath(ctx, pts);
-    ctx.stroke();
-    ctx.restore();
-  }
-
+  // Additive bloom disc behind the circle — intensifies with hover
   ctx.save();
-  ctx.lineWidth = (isMobile ? 5 : 7) + g * 6;
-  ctx.strokeStyle = 'rgba(0,229,255,' + (0.18 + g * 0.30).toFixed(3) + ')';
+  ctx.globalCompositeOperation = 'lighter';
+  var bloomR = baseR * (1.8 + g * 1.4);
+  var bloom = ctx.createRadialGradient(cx2, cy2, 0, cx2, cy2, bloomR);
+  bloom.addColorStop(0, 'rgba(0,229,255,' + (0.0 + g * 0.13).toFixed(3) + ')');
+  bloom.addColorStop(0.35, 'rgba(0,229,255,' + (0.0 + g * 0.09).toFixed(3) + ')');
+  bloom.addColorStop(1, 'rgba(0,229,255,0)');
+  ctx.fillStyle = bloom;
+  ctx.fillRect(0, 0, entW, entH);
+  ctx.restore();
+
+  // Glow passes — additive so they stack into real light
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+
+  // Pass 1: huge outer halo
+  ctx.lineWidth = 40 + g * 60;
+  ctx.strokeStyle = 'rgba(0,229,255,' + (0.02 + g * 0.07).toFixed(3) + ')';
   ctx.shadowColor = '#00e5ff';
-  ctx.shadowBlur = 30 + g * 55;
+  ctx.shadowBlur = 80 + g * 160;
+  drawMorphPath(ctx, pts);
+  ctx.stroke();
+
+  // Pass 2: mid glow
+  ctx.lineWidth = 18 + g * 30;
+  ctx.strokeStyle = 'rgba(0,229,255,' + (0.06 + g * 0.16).toFixed(3) + ')';
+  ctx.shadowColor = '#00e5ff';
+  ctx.shadowBlur = 40 + g * 90;
+  drawMorphPath(ctx, pts);
+  ctx.stroke();
+
+  // Pass 3: inner glow
+  ctx.lineWidth = 7 + g * 10;
+  ctx.strokeStyle = 'rgba(0,229,255,' + (0.14 + g * 0.28).toFixed(3) + ')';
+  ctx.shadowColor = '#00e5ff';
+  ctx.shadowBlur = 18 + g * 50;
+  drawMorphPath(ctx, pts);
+  ctx.stroke();
+
+  ctx.restore();
+
+  // Core bright line on top — normal compositing
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.lineWidth = 1.5 + g * 1.0;
+  ctx.strokeStyle = 'rgba(0,229,255,' + (0.85 + g * 0.15).toFixed(3) + ')';
+  ctx.shadowColor = '#00e5ff';
+  ctx.shadowBlur = 12 + g * 30;
   drawMorphPath(ctx, pts);
   ctx.stroke();
   ctx.restore();
-
-  ctx.save();
-  ctx.lineWidth = 1.5;
-  ctx.strokeStyle = 'rgba(0,229,255,' + (0.92 + g * 0.08).toFixed(3) + ')';
-  ctx.shadowColor = '#00e5ff';
-  ctx.shadowBlur = 14 + g * 28;
-  drawMorphPath(ctx, pts);
-  ctx.stroke();
-  ctx.restore();
-
-  var grad = ctx.createRadialGradient(cx2, cy2, 0, cx2, cy2, baseR);
-  grad.addColorStop(0, 'rgba(0,229,255,' + (0.04 + g * 0.10).toFixed(3) + ')');
-  grad.addColorStop(1, 'rgba(0,229,255,0)');
-  ctx.fillStyle = grad;
-  drawMorphPath(ctx, pts);
-  ctx.fill();
 }
 
 function getMorphedPts(baseR) {
@@ -864,15 +881,15 @@ function drawEntry(ts) {
 
   rotation += 0.0018 + hoverGlow * 0.008;
 
-  var pts = getMorphedPts(baseR);
-  drawShape(ec, pts, baseR);
-
-  // Radial vignette
+  // Radial vignette drawn first so it doesn't suppress the glow
   var vgrd = ec.createRadialGradient(entW * 0.5, entH * 0.5, entH * 0.18, entW * 0.5, entH * 0.5, entH * 0.88);
   vgrd.addColorStop(0, 'rgba(0,0,0,0)');
   vgrd.addColorStop(1, 'rgba(0,0,0,0.72)');
   ec.fillStyle = vgrd;
   ec.fillRect(0, 0, entW, entH);
+
+  var pts = getMorphedPts(baseR);
+  drawShape(ec, pts, baseR);
 
   entRAF = requestAnimationFrame(drawEntry);
 }
