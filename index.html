@@ -721,6 +721,8 @@ var emx = -999, emy = -999; // entry screen mouse
 var btnHov = false;
 var btnHovStart = 0;
 var hoverGlow = 0;
+var pulseRings = []; // [{r, alpha, spawnR}]
+var lastPulseTs = 0;
 var entRAF = null;
 var entActive = true;
 
@@ -753,55 +755,29 @@ function drawShape(ctx, pts, baseR) {
   var cx2 = entW / 2, cy2 = entH / 2;
   var g = hoverGlow;
 
-  // Additive bloom disc behind the circle — intensifies with hover
-  ctx.save();
-  ctx.globalCompositeOperation = 'lighter';
-  var bloomR = baseR * (1.8 + g * 1.4);
-  var bloom = ctx.createRadialGradient(cx2, cy2, 0, cx2, cy2, bloomR);
-  bloom.addColorStop(0, 'rgba(0,229,255,' + (0.0 + g * 0.13).toFixed(3) + ')');
-  bloom.addColorStop(0.35, 'rgba(0,229,255,' + (0.0 + g * 0.09).toFixed(3) + ')');
-  bloom.addColorStop(1, 'rgba(0,229,255,0)');
-  ctx.fillStyle = bloom;
-  ctx.fillRect(0, 0, entW, entH);
-  ctx.restore();
+  // Expanding pulse rings
+  for (var ri = 0; ri < pulseRings.length; ri++) {
+    var ring = pulseRings[ri];
+    ctx.beginPath();
+    ctx.arc(cx2, cy2, ring.r, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(0,229,255,' + ring.alpha.toFixed(3) + ')';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
 
-  // Glow passes — additive so they stack into real light
-  ctx.save();
-  ctx.globalCompositeOperation = 'lighter';
-
-  // Pass 1: huge outer halo
-  ctx.lineWidth = 40 + g * 60;
-  ctx.strokeStyle = 'rgba(0,229,255,' + (0.02 + g * 0.07).toFixed(3) + ')';
-  ctx.shadowColor = '#00e5ff';
-  ctx.shadowBlur = 80 + g * 160;
+  // Circle fill — soft cyan centre that brightens with hover
+  var fillGrad = ctx.createRadialGradient(cx2, cy2, 0, cx2, cy2, baseR);
+  fillGrad.addColorStop(0, 'rgba(0,229,255,' + (0.0 + g * 0.18).toFixed(3) + ')');
+  fillGrad.addColorStop(0.6, 'rgba(0,229,255,' + (0.0 + g * 0.07).toFixed(3) + ')');
+  fillGrad.addColorStop(1, 'rgba(0,229,255,0)');
+  ctx.fillStyle = fillGrad;
   drawMorphPath(ctx, pts);
-  ctx.stroke();
+  ctx.fill();
 
-  // Pass 2: mid glow
-  ctx.lineWidth = 18 + g * 30;
-  ctx.strokeStyle = 'rgba(0,229,255,' + (0.06 + g * 0.16).toFixed(3) + ')';
-  ctx.shadowColor = '#00e5ff';
-  ctx.shadowBlur = 40 + g * 90;
-  drawMorphPath(ctx, pts);
-  ctx.stroke();
-
-  // Pass 3: inner glow
-  ctx.lineWidth = 7 + g * 10;
-  ctx.strokeStyle = 'rgba(0,229,255,' + (0.14 + g * 0.28).toFixed(3) + ')';
-  ctx.shadowColor = '#00e5ff';
-  ctx.shadowBlur = 18 + g * 50;
-  drawMorphPath(ctx, pts);
-  ctx.stroke();
-
-  ctx.restore();
-
-  // Core bright line on top — normal compositing
+  // Crisp circle stroke — brighter as hover increases
   ctx.save();
-  ctx.globalCompositeOperation = 'source-over';
-  ctx.lineWidth = 1.5 + g * 1.0;
-  ctx.strokeStyle = 'rgba(0,229,255,' + (0.85 + g * 0.15).toFixed(3) + ')';
-  ctx.shadowColor = '#00e5ff';
-  ctx.shadowBlur = 12 + g * 30;
+  ctx.lineWidth = 1.5 + g * 2.5;
+  ctx.strokeStyle = 'rgba(0,229,255,' + (0.55 + g * 0.45).toFixed(3) + ')';
   drawMorphPath(ctx, pts);
   ctx.stroke();
   ctx.restore();
@@ -873,7 +849,7 @@ function drawEntry(ts) {
     var heldSecs = (ts - btnHovStart) / 2600;
     hoverGlow = Math.min(1, heldSecs);
   } else {
-    hoverGlow *= 0.92;
+    hoverGlow *= 0.88;
   }
 
   // Circle grows up to 40% bigger the longer you hover
@@ -881,7 +857,25 @@ function drawEntry(ts) {
 
   rotation += 0.0018 + hoverGlow * 0.008;
 
-  // Radial vignette drawn first so it doesn't suppress the glow
+  // Spawn expanding pulse rings every ~600ms while hovering
+  if (btnHov && hoverGlow > 0.05 && (ts - lastPulseTs) > 600) {
+    pulseRings.push({ r: baseR * 0.98, alpha: 0.7, spawnR: baseR });
+    lastPulseTs = ts;
+  }
+
+  // Advance rings outward and fade
+  for (var ri = pulseRings.length - 1; ri >= 0; ri--) {
+    pulseRings[ri].r += 1.8;
+    pulseRings[ri].alpha *= 0.965;
+    if (pulseRings[ri].alpha < 0.01) pulseRings.splice(ri, 1);
+  }
+
+  // CSS drop-shadow filter on canvas = real GPU-composited glow
+  var px = Math.round(6 + hoverGlow * 38);
+  var br = (1 + hoverGlow * 0.7).toFixed(2);
+  entryCv.style.filter = 'drop-shadow(0 0 ' + px + 'px rgba(0,229,255,' + (0.35 + hoverGlow * 0.55).toFixed(2) + ')) brightness(' + br + ')';
+
+  // Radial vignette
   var vgrd = ec.createRadialGradient(entW * 0.5, entH * 0.5, entH * 0.18, entW * 0.5, entH * 0.5, entH * 0.88);
   vgrd.addColorStop(0, 'rgba(0,0,0,0)');
   vgrd.addColorStop(1, 'rgba(0,0,0,0.72)');
