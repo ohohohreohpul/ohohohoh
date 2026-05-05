@@ -20,6 +20,24 @@ html{scroll-behavior:smooth;}
 body{background:var(--bg);color:var(--fg);font-family:var(--font-mono);overflow-x:hidden;cursor:none;}
 @media(hover:none){body{cursor:auto;}#cursor,#cursor-ring{display:none;}}
 
+/* ── Film grain overlay ── */
+body::after{
+  content:'';position:fixed;inset:-30%;width:160%;height:160%;
+  z-index:8500;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity:.038;
+  animation:grain .35s steps(1) infinite;
+}
+@keyframes grain{
+  0%,100%{transform:translate(0,0)}
+  14%{transform:translate(-2%,-3%)}
+  28%{transform:translate(3%,2%)}
+  42%{transform:translate(-3%,4%)}
+  57%{transform:translate(2%,-2%)}
+  71%{transform:translate(-4%,3%)}
+  85%{transform:translate(4%,-3%)}
+}
+
 #dot-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
 
 #cursor{position:fixed;width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 12px 3px rgba(0,229,255,.75);pointer-events:none;z-index:9999;transform:translate(-50%,-50%);mix-blend-mode:screen;}
@@ -34,6 +52,12 @@ body{background:var(--bg);color:var(--fg);font-family:var(--font-mono);overflow-
   position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
   z-index:2;display:flex;flex-direction:column;align-items:center;gap:14px;
   animation:enter-in 2.4s ease .6s both;
+  padding:44px 64px;
+  background:rgba(0,229,255,.018);
+  backdrop-filter:blur(10px) saturate(160%);
+  -webkit-backdrop-filter:blur(10px) saturate(160%);
+  border:1px solid rgba(0,229,255,.07);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04), 0 0 60px rgba(0,229,255,.04);
 }
 #enter-btn-wrap.exit{opacity:0;pointer-events:none;transition:opacity .4s ease;}
 @keyframes enter-in{from{opacity:0;}to{opacity:1;}}
@@ -68,7 +92,16 @@ body{background:var(--bg);color:var(--fg);font-family:var(--font-mono);overflow-
 @keyframes scan{0%{top:-4px;opacity:1;}100%{top:100vh;opacity:.15;}}
 
 /* ── Nav ── */
-#main-nav{position:fixed;top:0;left:0;right:0;z-index:300;display:flex;align-items:center;justify-content:space-between;padding:22px var(--pad);opacity:0;transform:translateY(-8px);transition:opacity .8s ease,transform .8s ease;pointer-events:none;}
+#main-nav{
+  position:fixed;top:0;left:0;right:0;z-index:300;
+  display:flex;align-items:center;justify-content:space-between;padding:22px var(--pad);
+  opacity:0;transform:translateY(-8px);transition:opacity .8s ease,transform .8s ease;pointer-events:none;
+  background:rgba(2,2,2,.52);
+  backdrop-filter:blur(18px) saturate(160%);
+  -webkit-backdrop-filter:blur(18px) saturate(160%);
+  border-bottom:1px solid rgba(255,255,255,.04);
+  box-shadow:0 1px 0 rgba(0,229,255,.04);
+}
 #main-nav.visible{opacity:1;transform:translateY(0);pointer-events:auto;}
 .nav-logo{font-family:var(--font-head);font-size:11px;font-weight:700;letter-spacing:.35em;color:var(--fg);text-decoration:none;text-transform:uppercase;}
 .nav-logo em{color:var(--cyan);font-style:normal;}
@@ -130,8 +163,25 @@ body{background:var(--bg);color:var(--fg);font-family:var(--font-mono);overflow-
 .proj.in-view .proj-bg{transform:scale(1.0);}
 
 .proj-veil{position:absolute;inset:0;}
+
+/* Per-section film grain */
+.proj::before{
+  content:'';position:absolute;inset:0;z-index:1;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23g)'/%3E%3C/svg%3E");
+  opacity:.055;mix-blend-mode:overlay;
+}
+
 .proj::after{content:'';position:absolute;bottom:0;left:0;right:0;height:28%;background:linear-gradient(to bottom,transparent,#020202);pointer-events:none;z-index:2;}
 .proj-body{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;padding:clamp(40px,7vw,100px);}
+
+/* Subtle frosted glass behind text — directional blur panel */
+.proj-body::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  backdrop-filter:blur(1px) saturate(1.15);
+  -webkit-backdrop-filter:blur(1px) saturate(1.15);
+  mask-image:radial-gradient(ellipse 80% 60% at 15% 85%,rgba(0,0,0,.6) 0%,transparent 70%);
+  -webkit-mask-image:radial-gradient(ellipse 80% 60% at 15% 85%,rgba(0,0,0,.6) 0%,transparent 70%);
+}
 .proj-body.bl{justify-content:flex-end;align-items:flex-start;}
 .proj-body.tr{justify-content:flex-start;align-items:flex-end;text-align:right;padding-top:clamp(80px,12vh,140px);}
 .proj-body.cc{justify-content:center;align-items:center;text-align:center;}
@@ -529,6 +579,21 @@ function drawShape(ctx, pts, baseR) {
   ctx.fillStyle = grad;
   drawMorphPath(ctx, pts);
   ctx.fill();
+
+  // Glass orb highlight — crescent arc in upper-left
+  var hx = cx2 - baseR * 0.18, hy = cy2 - baseR * 0.18;
+  var hGrad = ctx.createLinearGradient(hx - baseR, hy - baseR, hx + baseR * 0.5, hy + baseR * 0.5);
+  hGrad.addColorStop(0, 'rgba(255,255,255,0.13)');
+  hGrad.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx2, cy2, baseR * 0.92, -Math.PI * 0.78, -Math.PI * 0.08);
+  ctx.strokeStyle = hGrad;
+  ctx.lineWidth = baseR * 0.045;
+  ctx.lineCap = 'round';
+  ctx.globalAlpha = 0.85;
+  ctx.stroke();
+  ctx.restore();
 }
 
 function getMorphedPts(baseR) {
@@ -612,6 +677,13 @@ function drawEntry(ts) {
 
   var pts = getMorphedPts(baseR);
   drawShape(ec, pts, baseR);
+
+  // Radial vignette
+  var vgrd = ec.createRadialGradient(entW * 0.5, entH * 0.5, entH * 0.18, entW * 0.5, entH * 0.5, entH * 0.88);
+  vgrd.addColorStop(0, 'rgba(0,0,0,0)');
+  vgrd.addColorStop(1, 'rgba(0,0,0,0.72)');
+  ec.fillStyle = vgrd;
+  ec.fillRect(0, 0, entW, entH);
 
   entRAF = requestAnimationFrame(drawEntry);
 }
