@@ -442,8 +442,8 @@ body.tv-on{animation:tv-on .65s cubic-bezier(.16,1,.3,1) forwards;transform-orig
     <div id="term-log"></div>
 
     <div id="term-form">
-      <div class="tf-head">// IDENTITY VERIFICATION REQUIRED</div>
-      <div class="tf-sub">// TRANSMIT YOUR COORDINATES TO ENTER THE GRID</div>
+      <div class="tf-head">// WELCOME TO THE GRID</div>
+      <div class="tf-sub">// LEAVE YOUR NAME TO STAY CONNECTED</div>
       <div class="tf-field">
         <span class="tf-lbl">NAME &gt;&nbsp;</span>
         <input id="tf-name" type="text" autocomplete="name" spellcheck="false" placeholder="your name"/>
@@ -1037,9 +1037,9 @@ function startLoading(name, email, consent) {
   } catch(e) {}
 
   var loadLines = [
-    { t: '  > PROCESSING IDENTITY...', d: 0 },
+    { t: '  > INITIALIZING SESSION...', d: 0 },
     { t: '  > ESTABLISHING SECURE CHANNEL...', d: 420 },
-    { t: '  > ENCRYPTING COORDINATES...', d: 780 },
+    { t: '  > ESTABLISHING CONNECTION...', d: 780 },
     { t: '  > ACCESS GRANTED — WELCOME TO THE GRID', d: 1200 },
   ];
   loadLines.forEach(function(l) {
