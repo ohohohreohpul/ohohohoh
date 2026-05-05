@@ -466,47 +466,16 @@ var btnHov = false;
 var entRAF = null;
 var entActive = true;
 
-// Build shape radii tables
+// Circle points
 var N_PTS = 180;
 var ANGLES = [];
 for (var ai = 0; ai < N_PTS; ai++) ANGLES.push(ai / N_PTS * Math.PI * 2);
 
-function rNgon(theta, n) {
-  var s = (2 * Math.PI) / n;
-  var t = ((theta % s) + s) % s;
-  return Math.cos(Math.PI / n) / Math.cos(t - s / 2);
-}
-function rStar(theta, n, blend) {
-  return (1 - blend) + blend * Math.cos(n * theta);
-}
-
-var SHAPES = [
-  ANGLES.map(function() { return 1; }),
-  ANGLES.map(function(a) { return rStar(a, 5, 0.28); }),
-  ANGLES.map(function(a) { return rNgon(a, 3); }),
-  ANGLES.map(function(a) { return rStar(a, 6, 0.22); }),
-  ANGLES.map(function(a) { return rNgon(a, 4); }),
-  ANGLES.map(function(a) { return rNgon(a, 6); })
-];
-// Normalize each shape so max radius = 1
-SHAPES.forEach(function(s) {
-  var mx2 = 0;
-  for (var i = 0; i < s.length; i++) if (s[i] > mx2) mx2 = s[i];
-  for (var i = 0; i < s.length; i++) s[i] /= mx2;
-});
-
-// Morph state
-var shapeFrom = 0, shapeTo = 1, morphT = 0;
-var isMorphing = false, holdMs = 0;
-var HOLD_MS = 2600, MORPH_MS = 1500;
 var rotation = 0;
 var entryTs0 = null, lastEntFrameTs = null;
 var entCollapsing = false, collapseTs = 0;
 var GROW_MS = 1600, COLLAPSE_MS = 520;
 
-function easeInOut3(t) {
-  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-}
 function easeInCubic(t) { return t * t * t; }
 function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
 
@@ -564,12 +533,11 @@ function drawShape(ctx, pts, baseR) {
 
 function getMorphedPts(baseR) {
   var cx2 = entW / 2, cy2 = entH / 2;
-  var t = easeInOut3(morphT);
   var pts = [];
 
   for (var i = 0; i < N_PTS; i++) {
     var ang = ANGLES[i] + rotation;
-    var r = SHAPES[shapeFrom][i] * (1 - t) + SHAPES[shapeTo][i] * t;
+    var r = 1; // circle
 
     // Mouse deforms the membrane outward (inward on hover)
     if (emx > -900) {
@@ -638,24 +606,6 @@ function drawEntry(ts) {
     var growT = Math.min(1, elapsed / GROW_MS);
     baseR *= easeOutCubic(growT);
 
-    if (elapsed > GROW_MS) {
-      if (!isMorphing) {
-        holdMs += dt;
-        if (holdMs >= HOLD_MS) {
-          isMorphing = true;
-          holdMs = 0;
-          shapeFrom = shapeTo;
-          shapeTo = (shapeTo + 1) % SHAPES.length;
-          morphT = 0;
-        }
-      } else {
-        morphT = Math.min(1, morphT + dt / MORPH_MS);
-        if (morphT >= 1) {
-          isMorphing = false;
-          morphT = 1;
-        }
-      }
-    }
   }
 
   rotation += btnHov ? 0.007 : 0.0018;
@@ -670,8 +620,7 @@ function initEntry() {
   entW = entryCv.width  = window.innerWidth;
   entH = entryCv.height = window.innerHeight;
   entryTs0 = null; lastEntFrameTs = null;
-  shapeFrom = 0; shapeTo = 1; morphT = 0;
-  isMorphing = false; holdMs = 0; rotation = 0;
+  rotation = 0;
   entCollapsing = false; entActive = true;
 }
 
