@@ -719,6 +719,8 @@ var ec = entryCv.getContext('2d');
 var entW = 0, entH = 0;
 var emx = -999, emy = -999; // entry screen mouse
 var btnHov = false;
+var btnHovStart = 0;
+var hoverGlow = 0;
 var entRAF = null;
 var entActive = true;
 
@@ -749,43 +751,43 @@ function drawMorphPath(ctx, pts) {
 function drawShape(ctx, pts, baseR) {
   if (baseR < 1) return;
   var cx2 = entW / 2, cy2 = entH / 2;
+  var g = hoverGlow;
 
   if (!isMobile) {
     ctx.save();
-    ctx.lineWidth = 18;
-    ctx.strokeStyle = 'rgba(0,229,255,0.05)';
+    ctx.lineWidth = 18 + g * 24;
+    ctx.strokeStyle = 'rgba(0,229,255,' + (0.05 + g * 0.18).toFixed(3) + ')';
     ctx.shadowColor = '#00e5ff';
-    ctx.shadowBlur = 60;
+    ctx.shadowBlur = 60 + g * 100;
     drawMorphPath(ctx, pts);
     ctx.stroke();
     ctx.restore();
   }
 
   ctx.save();
-  ctx.lineWidth = isMobile ? 5 : 7;
-  ctx.strokeStyle = 'rgba(0,229,255,0.18)';
+  ctx.lineWidth = (isMobile ? 5 : 7) + g * 6;
+  ctx.strokeStyle = 'rgba(0,229,255,' + (0.18 + g * 0.30).toFixed(3) + ')';
   ctx.shadowColor = '#00e5ff';
-  ctx.shadowBlur = 30;
+  ctx.shadowBlur = 30 + g * 55;
   drawMorphPath(ctx, pts);
   ctx.stroke();
   ctx.restore();
 
   ctx.save();
   ctx.lineWidth = 1.5;
-  ctx.strokeStyle = 'rgba(0,229,255,0.92)';
+  ctx.strokeStyle = 'rgba(0,229,255,' + (0.92 + g * 0.08).toFixed(3) + ')';
   ctx.shadowColor = '#00e5ff';
-  ctx.shadowBlur = 14;
+  ctx.shadowBlur = 14 + g * 28;
   drawMorphPath(ctx, pts);
   ctx.stroke();
   ctx.restore();
 
   var grad = ctx.createRadialGradient(cx2, cy2, 0, cx2, cy2, baseR);
-  grad.addColorStop(0, 'rgba(0,229,255,0.04)');
+  grad.addColorStop(0, 'rgba(0,229,255,' + (0.04 + g * 0.10).toFixed(3) + ')');
   grad.addColorStop(1, 'rgba(0,229,255,0)');
   ctx.fillStyle = grad;
   drawMorphPath(ctx, pts);
   ctx.fill();
-
 }
 
 function getMorphedPts(baseR) {
@@ -847,10 +849,20 @@ function drawEntry(ts) {
   } else {
     var growT = Math.min(1, elapsed / GROW_MS);
     baseR *= easeOutCubic(growT);
-
   }
 
-  rotation += btnHov ? 0.007 : 0.0018;
+  // Hover glow — ramps up while holding, decays on release
+  if (btnHov) {
+    var heldSecs = (ts - btnHovStart) / 2600;
+    hoverGlow = Math.min(1, heldSecs);
+  } else {
+    hoverGlow *= 0.92;
+  }
+
+  // Circle grows up to 40% bigger the longer you hover
+  baseR *= 1 + hoverGlow * 0.40;
+
+  rotation += 0.0018 + hoverGlow * 0.008;
 
   var pts = getMorphedPts(baseR);
   drawShape(ec, pts, baseR);
@@ -882,7 +894,7 @@ bootEl.addEventListener('touchmove', function(e) {
 bootEl.addEventListener('touchend', function() { emx = -999; emy = -999; }, { passive: true });
 
 var btnEl = $('enter-btn');
-btnEl.addEventListener('mouseenter', function() { btnHov = true; });
+btnEl.addEventListener('mouseenter', function() { btnHov = true; btnHovStart = performance.now(); });
 btnEl.addEventListener('mouseleave', function() { btnHov = false; });
 
 initEntry();
