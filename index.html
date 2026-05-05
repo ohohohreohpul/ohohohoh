@@ -52,12 +52,6 @@ body::after{
   position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
   z-index:2;display:flex;flex-direction:column;align-items:center;gap:14px;
   animation:enter-in 2.4s ease .6s both;
-  padding:44px 64px;
-  background:rgba(0,229,255,.018);
-  backdrop-filter:blur(10px) saturate(160%);
-  -webkit-backdrop-filter:blur(10px) saturate(160%);
-  border:1px solid rgba(0,229,255,.07);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.04), 0 0 60px rgba(0,229,255,.04);
 }
 #enter-btn-wrap.exit{opacity:0;pointer-events:none;transition:opacity .4s ease;}
 @keyframes enter-in{from{opacity:0;}to{opacity:1;}}
@@ -262,6 +256,111 @@ body::after{
 
 footer{padding:28px var(--pad);border-top:1px solid rgba(255,255,255,.04);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
 footer span{font-family:var(--font-mono);font-size:9px;letter-spacing:.2em;color:rgba(255,255,255,.16);text-transform:uppercase;}
+
+/* ══ TERMINAL SCREEN ══ */
+#terminal-screen{
+  position:fixed;inset:0;z-index:550;
+  background:#000;
+  display:none;overflow:hidden;
+  font-family:var(--font-mono);
+}
+/* CRT scanlines */
+#terminal-screen::before{
+  content:'';position:absolute;inset:0;z-index:5;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent 0,transparent 3px,rgba(0,229,255,.018) 3px,rgba(0,229,255,.018) 4px);
+}
+/* CRT vignette */
+#terminal-screen::after{
+  content:'';position:absolute;inset:0;z-index:5;pointer-events:none;
+  background:radial-gradient(ellipse at center,transparent 44%,rgba(0,0,0,.72) 100%);
+}
+#term-inner{
+  position:absolute;inset:0;z-index:6;
+  padding:clamp(32px,7vh,80px) clamp(32px,9vw,140px);
+  overflow-y:auto;display:flex;flex-direction:column;
+}
+#term-log{
+  color:var(--cyan);font-size:clamp(10px,1.05vw,13px);
+  line-height:1.95;letter-spacing:.05em;white-space:pre;
+  flex-shrink:0;
+}
+.tl-head{color:var(--fg);letter-spacing:.18em;font-size:clamp(10px,1.1vw,13px);}
+.tl-sep{color:rgba(0,229,255,.22);}
+.tl-ok{color:rgba(0,229,255,.75);}
+.tl-bright{color:var(--cyan);}
+.tl-dim{color:rgba(0,229,255,.35);}
+.tl-cursor{display:inline-block;width:9px;height:1em;background:var(--cyan);vertical-align:middle;margin-left:2px;animation:blink .7s step-end infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+
+/* Form */
+#term-form{
+  margin-top:28px;display:none;
+  animation:tf-in .5s ease both;
+}
+@keyframes tf-in{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.tf-head{color:var(--cyan);font-size:clamp(10px,1.05vw,13px);letter-spacing:.09em;line-height:2;}
+.tf-sub{color:rgba(0,229,255,.38);font-size:clamp(9px,.9vw,11px);letter-spacing:.1em;margin-bottom:28px;}
+.tf-field{display:flex;align-items:center;gap:14px;margin-bottom:18px;}
+.tf-lbl{color:rgba(0,229,255,.5);font-size:clamp(9px,.9vw,11px);letter-spacing:.12em;white-space:nowrap;width:72px;flex-shrink:0;}
+.tf-field input{
+  background:transparent;border:none;border-bottom:1px solid rgba(0,229,255,.28);
+  color:var(--fg);font-family:var(--font-mono);font-size:clamp(11px,1vw,13px);
+  letter-spacing:.05em;outline:none;padding:6px 4px;
+  width:clamp(180px,26vw,360px);caret-color:var(--cyan);transition:border-color .2s;
+}
+.tf-field input:focus{border-color:rgba(0,229,255,.7);}
+.tf-field input::placeholder{color:rgba(255,255,255,.14);}
+.tf-consent{display:flex;align-items:center;gap:12px;margin:18px 0 28px;cursor:pointer;}
+.tf-consent input[type=checkbox]{
+  appearance:none;-webkit-appearance:none;
+  width:13px;height:13px;border:1px solid rgba(0,229,255,.4);
+  background:transparent;cursor:pointer;flex-shrink:0;position:relative;
+}
+.tf-consent input[type=checkbox]:checked{background:rgba(0,229,255,.15);border-color:var(--cyan);}
+.tf-consent input[type=checkbox]:checked::after{
+  content:'×';position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--cyan);font-size:11px;
+}
+.tf-consent span{color:rgba(0,229,255,.45);font-size:clamp(9px,.85vw,11px);letter-spacing:.12em;}
+.tf-error{color:#ff4466;font-size:clamp(9px,.85vw,11px);letter-spacing:.1em;min-height:20px;margin-bottom:8px;}
+.tf-btns{display:flex;gap:20px;align-items:center;flex-wrap:wrap;}
+#tf-submit{
+  font-family:var(--font-head);font-size:clamp(9px,1.1vw,11px);letter-spacing:.45em;
+  text-transform:uppercase;color:#020202;background:var(--cyan);
+  border:none;padding:14px 36px;cursor:pointer;
+  transition:opacity .2s,box-shadow .2s;
+}
+#tf-submit:hover{opacity:.85;box-shadow:0 0 32px rgba(0,229,255,.45);}
+#tf-skip{
+  font-family:var(--font-mono);font-size:clamp(9px,.85vw,11px);letter-spacing:.3em;
+  color:rgba(0,229,255,.32);background:transparent;border:none;cursor:pointer;
+  transition:color .2s;
+}
+#tf-skip:hover{color:rgba(0,229,255,.7);}
+
+/* Loader */
+#term-loader{margin-top:20px;display:none;}
+#tl-load-log{color:rgba(0,229,255,.55);font-size:clamp(9px,.9vw,11px);letter-spacing:.08em;line-height:2;margin-bottom:18px;}
+.tl-bar-wrap{width:min(480px,78vw);height:2px;background:rgba(0,229,255,.1);margin-bottom:12px;}
+#tl-bar{height:100%;width:0;background:var(--cyan);box-shadow:0 0 14px rgba(0,229,255,.85);transition:width .07s linear;}
+#tl-pct{color:rgba(0,229,255,.45);font-size:clamp(9px,.85vw,11px);letter-spacing:.3em;}
+
+/* TV CRT transition */
+#terminal-screen.tv-off{animation:tv-off .38s cubic-bezier(.55,0,1,.45) forwards;transform-origin:center;}
+@keyframes tv-off{
+  0%  {transform:scaleY(1);filter:brightness(1);opacity:1;}
+  55% {transform:scaleY(.022) scaleX(1.04);filter:brightness(3);opacity:1;}
+  100%{transform:scaleY(.003) scaleX(1.08);filter:brightness(5);opacity:0;}
+}
+body.tv-on{animation:tv-on .65s cubic-bezier(.16,1,.3,1) forwards;transform-origin:center;}
+@keyframes tv-on{
+  0%  {transform:scaleY(.004) scaleX(1.06);filter:brightness(4);}
+  18% {filter:brightness(2.5);}
+  55% {transform:scaleY(1.04) scaleX(.998);filter:brightness(1.2);}
+  78% {transform:scaleY(.985);filter:brightness(1);}
+  100%{transform:scaleY(1) scaleX(1);filter:brightness(1);}
+}
 </style>
 </head>
 <body>
@@ -278,6 +377,41 @@ footer span{font-family:var(--font-mono);font-size:9px;letter-spacing:.2em;color
   </div>
   <span class="boot-hint">touch anywhere to interact</span>
 </div>
+<!-- TERMINAL BOOT SCREEN -->
+<div id="terminal-screen">
+  <div id="term-inner">
+    <div id="term-log"></div>
+
+    <div id="term-form">
+      <div class="tf-head">// IDENTITY VERIFICATION REQUIRED</div>
+      <div class="tf-sub">// TRANSMIT YOUR COORDINATES TO ENTER THE GRID</div>
+      <div class="tf-field">
+        <span class="tf-lbl">NAME &gt;&nbsp;</span>
+        <input id="tf-name" type="text" autocomplete="name" spellcheck="false" placeholder="your name"/>
+      </div>
+      <div class="tf-field">
+        <span class="tf-lbl">EMAIL &gt;</span>
+        <input id="tf-email" type="email" autocomplete="email" spellcheck="false" placeholder="your@email.com"/>
+      </div>
+      <label class="tf-consent">
+        <input id="tf-consent" type="checkbox"/>
+        <span>// SUBSCRIBE TO FUTURE TRANSMISSIONS</span>
+      </label>
+      <div class="tf-error" id="tf-error"></div>
+      <div class="tf-btns">
+        <button id="tf-submit">INITIATE &gt;</button>
+        <button id="tf-skip">[ SKIP ]</button>
+      </div>
+    </div>
+
+    <div id="term-loader">
+      <div id="tl-load-log"></div>
+      <div class="tl-bar-wrap"><div id="tl-bar"></div></div>
+      <div id="tl-pct">0%</div>
+    </div>
+  </div>
+</div>
+
 <div id="scan-line"></div>
 
 <section id="hero">
@@ -761,25 +895,131 @@ function ambient() {
 setTimeout(ambient, 4500);
 
 // ════════════════════════════════════
-// BOOT SEQUENCE
+// BOOT SEQUENCE → TERMINAL → MAIN PAGE
 // ════════════════════════════════════
 var entered = false;
 
-function runScan(onDone) {
-  var el = $('scan-line');
-  el.classList.add('active');
-  var s0 = null;
-  var dur = 1100;
-  (function tick(ts) {
-    if (!s0) s0 = ts;
-    var p = Math.min(1, (ts - s0) / dur);
-    var y = p * dotCanvas.height;
-    for (var di = 0; di < dots.length; di++) {
-      if (Math.abs(dots[di].y - y) < 16) dots[di].glow = 0.8 + Math.random() * 0.18;
+var BOOT_LINES = [
+  { t: 'JIRANAN OH SYSTEM // BOOT SEQUENCE v2.0.26', c: 'tl-head' },
+  { t: '══════════════════════════════════════════════════', c: 'tl-sep' },
+  { t: '', c: '' },
+  { t: '  CREATIVE KERNEL ................. LOADED', c: 'tl-ok', d: 110 },
+  { t: '  NEURAL INTERFACE LAYER .......... OK', c: 'tl-ok', d: 130 },
+  { t: '  AESTHETIC PROTOCOLS v4.2 ........ OK', c: 'tl-ok', d: 100 },
+  { t: '  PORTFOLIO MATRIX ................ MOUNTED', c: 'tl-ok', d: 150 },
+  { t: '  REALITY DISTORTION FIELD ........ ACTIVE', c: 'tl-ok', d: 120 },
+  { t: '  IMAGINATION ENGINE .............. RUNNING', c: 'tl-ok', d: 140 },
+  { t: '  TIMELINE COHERENCE .............. VERIFIED', c: 'tl-ok', d: 110 },
+  { t: '  GRID CORE ....................... ONLINE', c: 'tl-ok', d: 100 },
+  { t: '', c: '', d: 60 },
+  { t: '══════════════════════════════════════════════════', c: 'tl-sep', d: 80 },
+  { t: '  ALL SYSTEMS NOMINAL // READY FOR INPUT', c: 'tl-bright', d: 100 },
+  { t: '══════════════════════════════════════════════════', c: 'tl-sep', d: 60 },
+  { t: '', c: '', d: 40 },
+];
+
+function runBootSequence() {
+  var termEl = $('terminal-screen');
+  termEl.style.display = 'block';
+  var log = $('term-log');
+  var total = 0;
+
+  // Add cursor to log initially
+  var cursorEl = document.createElement('span');
+  cursorEl.className = 'tl-cursor';
+  log.appendChild(cursorEl);
+
+  BOOT_LINES.forEach(function(line, idx) {
+    var delay = total + (line.d || 60);
+    total = delay;
+    setTimeout(function() {
+      var row = document.createElement('div');
+      row.textContent = line.t;
+      if (line.c) row.className = line.c;
+      log.insertBefore(row, cursorEl);
+      log.scrollTop = log.scrollHeight;
+    }, delay);
+  });
+
+  // Show form after sequence completes
+  setTimeout(function() {
+    cursorEl.remove();
+    var formEl = $('term-form');
+    formEl.style.display = 'block';
+    var nameIn = $('tf-name');
+    if (nameIn) setTimeout(function() { nameIn.focus(); }, 100);
+  }, total + 320);
+}
+
+function appendLoadLog(text) {
+  var el = $('tl-load-log');
+  var row = document.createElement('div');
+  row.textContent = text;
+  el.appendChild(row);
+}
+
+function startLoading(name, email, consent) {
+  $('term-form').style.display = 'none';
+  var loaderEl = $('term-loader');
+  loaderEl.style.display = 'block';
+
+  // Store data locally; replace with API call here if needed
+  try {
+    localStorage.setItem('jo_name', name || '');
+    localStorage.setItem('jo_email', email || '');
+    localStorage.setItem('jo_consent', consent ? '1' : '0');
+  } catch(e) {}
+
+  var loadLines = [
+    { t: '  > PROCESSING IDENTITY...', d: 0 },
+    { t: '  > ESTABLISHING SECURE CHANNEL...', d: 420 },
+    { t: '  > ENCRYPTING COORDINATES...', d: 780 },
+    { t: '  > ACCESS GRANTED — WELCOME TO THE GRID', d: 1200 },
+  ];
+  loadLines.forEach(function(l) {
+    setTimeout(function() { appendLoadLog(l.t); }, l.d);
+  });
+
+  var bar = $('tl-bar'), pct = $('tl-pct');
+  var start = performance.now();
+  var dur = 1700;
+  // Non-linear fill: slow start, fast middle, slow end
+  var stops = [0,0.06,0.18,0.38,0.60,0.78,0.90,0.97,1.0];
+  var stopMs = stops.map(function(s) { return s * dur; });
+  (function fill(ts) {
+    var elapsed = ts - start;
+    var p = Math.min(1, elapsed / dur);
+    // Ease: fast middle, slow near-end
+    var eased = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2.2) / 2;
+    var pv = Math.round(eased * 100);
+    bar.style.width = pv + '%';
+    pct.textContent = pv + '%';
+    if (p < 1) requestAnimationFrame(fill);
+    else {
+      setTimeout(enterMainPage, 320);
     }
-    if (p < 1) requestAnimationFrame(tick);
-    else { el.classList.remove('active'); if (onDone) onDone(); }
   })(performance.now());
+}
+
+function enterMainPage() {
+  var termEl = $('terminal-screen');
+  termEl.classList.add('tv-off');
+
+  setTimeout(function() {
+    termEl.style.display = 'none';
+
+    // Reveal main page
+    var hero = $('hero');
+    hero.classList.add('visible');
+    hero.style.opacity = '1';
+    $('hero-scroll').classList.add('visible');
+    $('main-nav').classList.add('visible');
+    setupInteract();
+
+    // TV turn-on animation on body
+    document.body.classList.add('tv-on');
+    setTimeout(function() { document.body.classList.remove('tv-on'); }, 700);
+  }, 400);
 }
 
 function onEnter(e) {
@@ -792,23 +1032,39 @@ function onEnter(e) {
   collapseTs = performance.now();
 
   setTimeout(function() {
-    runScan(function() {
-      bootEl.classList.add('fade-out');
-      var hero = $('hero');
-      hero.classList.add('visible');
-      hero.style.opacity = '1';
-
-      setTimeout(function() {
-        bootEl.style.display = 'none';
-        if (entRAF) cancelAnimationFrame(entRAF);
-        entActive = false;
-        $('hero-scroll').classList.add('visible');
-        $('main-nav').classList.add('visible');
-        setupInteract();
-      }, 900);
-    });
-  }, COLLAPSE_MS + 80);
+    bootEl.classList.add('fade-out');
+    setTimeout(function() {
+      bootEl.style.display = 'none';
+      if (entRAF) cancelAnimationFrame(entRAF);
+      entActive = false;
+      runBootSequence();
+    }, 500);
+  }, COLLAPSE_MS);
 }
+
+// Form handlers
+document.addEventListener('DOMContentLoaded', function() {});
+(function bindForm() {
+  var submitBtn = $('tf-submit');
+  var skipBtn = $('tf-skip');
+  if (!submitBtn) { setTimeout(bindForm, 80); return; }
+
+  submitBtn.addEventListener('click', function() {
+    var name = ($('tf-name').value || '').trim();
+    var email = ($('tf-email').value || '').trim();
+    var consent = $('tf-consent').checked;
+    var errEl = $('tf-error');
+
+    if (!name) { errEl.textContent = '> ERROR: NAME FIELD REQUIRED'; return; }
+    if (!email || email.indexOf('@') < 1) { errEl.textContent = '> ERROR: INVALID EMAIL ADDRESS'; return; }
+    errEl.textContent = '';
+    startLoading(name, email, consent);
+  });
+
+  skipBtn.addEventListener('click', function() {
+    startLoading('', '', false);
+  });
+})();
 
 btnEl.addEventListener('touchstart', onEnter, { passive: false });
 btnEl.addEventListener('click', onEnter);
